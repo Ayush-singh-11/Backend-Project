@@ -20,6 +20,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
+//For User register method
 const registerUser = asyncHandler(async (req, res) => {
   // Steps to do while registering=>
   // 1.get user details from frontend
@@ -101,6 +102,7 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, createdUser, "User registering Successully"));
 });
 
+//For User Login method
 const loginUser = asyncHandler(async (req, res) => {
   // Steps to login->
   // 1.req body->data
@@ -132,29 +134,62 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid user credentials");
   }
 
-    //5.
-    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id); 
-    const loggedInUser=await User.findById(user._id).select("-password -refreshToken");
+  //5.
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
-    // 6.
-    const options={
-        httpOnly:true,
-        secure:true
-    };
-    return res
+  // 6.
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
     .status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken,options)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
-        new ApiResponse(
-            200,
-            {
-                user:loggedInUser,accessToken,refreshToken
-            },
-            "User logged in Successfully"
-        )
-    )
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User logged in Successfully"
+      )
+    );
+});
+
+//For User Logout method
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+  .status(200)
+  .clearCookie("accessToken",options)
+  .clearCookie("refreshToken",options)
+  .json(
+    new ApiResponse(200,{},"User logged Out")
+  );
 
 });
 
-export { registerUser, loginUser };
+export { registerUser, loginUser, logoutUser };
